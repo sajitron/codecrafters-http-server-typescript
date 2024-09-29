@@ -12,19 +12,23 @@ const server = net.createServer((socket) => {
     socket.end();
   });
   socket.on("data", (data) => {
+    const regex = /^\/echo\/.+$/;
     const [firstLine] = data.toString().split("\n");
     const path = firstLine.trim().split(" ")[1];
-    if (path !== "/") {
-      socket.write("HTTP/1.1 404 Not Found\r\n\r\n", () => {
-        console.log("Page Does Not Exist");
-      });
+    let response = "";
+    if (path === "/") {
+      response = "HTTP/1.1 200 OK\r\n\r\n";
+    } else if (regex.test(path)) {
+      const param = path.slice(6);
+      response = `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${param.length}\r\n\r\n${param}`;
     } else {
-      socket.write("HTTP/1.1 200 OK\r\n\r\n", () => {
-        console.log("Response sent");
-      });
+      response = "HTTP/1.1 404 Not Found\r\n\r\n";
     }
+    socket.write(response, () => {
+      console.log("Response sent", response);
+    });
+    socket.pipe(socket);
   });
-  socket.pipe(socket);
 });
 
 server.listen(4221, "localhost");
