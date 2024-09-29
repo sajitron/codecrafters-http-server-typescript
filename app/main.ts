@@ -11,7 +11,19 @@ const server = net.createServer((socket) => {
   socket.on("close", () => {
     socket.end();
   });
-  socket.write("HTTP/1.1 200 OK\r\n\r\n");
+  socket.on("data", (data) => {
+    const [firstLine] = data.toString().split("\n");
+    const path = firstLine.trim().split(" ")[1];
+    if (path !== "/") {
+      socket.write("HTTP/1.1 404 Not Found\r\n\r\n", () => {
+        console.log("Page Does Not Exist");
+      });
+    } else {
+      socket.write("HTTP/1.1 200 OK\r\n\r\n", () => {
+        console.log("Response sent");
+      });
+    }
+  });
   socket.pipe(socket);
 });
 
