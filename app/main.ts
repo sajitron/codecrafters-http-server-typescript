@@ -24,7 +24,9 @@ const server = net.createServer((socket) => {
       const userAgent = getUserAgent(data.toString());
       response = `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${userAgent.length}\r\n\r\n${userAgent}`;
     } else if (path.startsWith("/files")) {
-      response = await getFile(path);
+      const directory = process.argv[3];
+      const fileName = path.split("/")[2];
+      response = await getFileResponse(`${directory}/${fileName}`);
     } else {
       response = "HTTP/1.1 404 Not Found\r\n\r\n";
     }
@@ -45,22 +47,20 @@ function getUserAgent(data: string) {
   return data.split("\n")[2].split(" ")[1].trim();
 }
 
-async function getFile(path: string): Promise<string> {
+async function getFileResponse(filePath: string): Promise<string> {
   let response = "";
-  const fileName = path.split("/")[2];
   try {
-    const file = await fs.stat(`/tmp/${fileName}`);
+    const file = await fs.stat(filePath);
 
     if (!file.isFile()) {
-      console.log("Not a file");
       response = "HTTP/1.1 404 Not Found\r\n\r\n";
     }
 
-    const content = await fs.readFile(`/tmp/${fileName}`, "utf-8");
+    const content = await fs.readFile(filePath, "utf-8");
     const fileSize = file.size;
     response = `HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: ${fileSize}\r\n\r\n${content}`;
   } catch (error) {
-    console.log("Error:", error);
+    console.log("Error Block:", error);
     response = "HTTP/1.1 404 Not Found\r\n\r\n";
   }
   return response;
