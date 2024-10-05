@@ -23,7 +23,7 @@ const server = net.createServer((socket) => {
     } else if (path.startsWith("/user-agent")) {
       const userAgent = getUserAgent(data.toString());
       response = `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${userAgent.length}\r\n\r\n${userAgent}`;
-    } else if (path.startsWith("/file")) {
+    } else if (path.startsWith("/files")) {
       response = await getFile(path);
     } else {
       response = "HTTP/1.1 404 Not Found\r\n\r\n";
