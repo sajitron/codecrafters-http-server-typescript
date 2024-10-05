@@ -12,15 +12,16 @@ const server = net.createServer((socket) => {
     socket.end();
   });
   socket.on("data", (data) => {
-    const regex = /^\/echo\/.+$/;
-    const [firstLine] = data.toString().split("\n");
-    const path = firstLine.trim().split(" ")[1];
+    const path = getPath(data.toString());
     let response = "";
     if (path === "/") {
       response = "HTTP/1.1 200 OK\r\n\r\n";
-    } else if (regex.test(path)) {
+    } else if (path.startsWith("/echo")) {
       const param = path.slice(6);
       response = `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${param.length}\r\n\r\n${param}`;
+    } else if (path.startsWith("/user-agent")) {
+      const userAgent = getUserAgent(data.toString());
+      response = `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${userAgent.length}\r\n\r\n${userAgent}`;
     } else {
       response = "HTTP/1.1 404 Not Found\r\n\r\n";
     }
@@ -32,3 +33,11 @@ const server = net.createServer((socket) => {
 });
 
 server.listen(4221, "localhost");
+
+function getPath(data: string) {
+  return data.split("\n")[0].split(" ")[1];
+}
+
+function getUserAgent(data: string) {
+  return data.split("\n")[2].split(" ")[1];
+}
