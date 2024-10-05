@@ -35,9 +35,9 @@ const server = net.createServer((socket) => {
 server.listen(4221, "localhost");
 
 function getPath(data: string) {
-  return data.split("\n")[0].split(" ")[1];
+  return data.split("\n")[0].split(" ")[1].trim();
 }
 
 function getUserAgent(data: string) {
-  return data.split("\n")[2].split(" ")[1];
+  return data.split("\n")[2].split(" ")[1].trim();
 }
