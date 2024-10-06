@@ -56,7 +56,14 @@ function getPath(data: string) {
 }
 
 function getUserAgent(data: string) {
-  return data.split("\n")[2].split(" ")[1].trim();
+  const userAgentData = data
+    .split("\n")
+    .find((line) => line.startsWith("User-Agent"));
+  if (!userAgentData) {
+    return "";
+  }
+  const [, userAgent] = userAgentData.split(":");
+  return userAgent.trim();
 }
 
 async function getFileResponse(filePath: string): Promise<string> {
