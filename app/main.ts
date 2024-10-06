@@ -1,5 +1,6 @@
 import * as net from "net";
 import * as fs from "fs/promises";
+import * as path from "node:path";
 
 // You can use print statements as follows for debugging, they'll be visible when running tests.
 console.log("Logs from your program will appear here!");
@@ -13,20 +14,31 @@ const server = net.createServer((socket) => {
     socket.end();
   });
   socket.on("data", async (data) => {
-    const path = getPath(data.toString());
+    const requestPath = getPath(data.toString());
     let response = "";
-    if (path === "/") {
+    if (requestPath === "/") {
       response = "HTTP/1.1 200 OK\r\n\r\n";
-    } else if (path.startsWith("/echo")) {
-      const param = path.slice(6);
+    } else if (requestPath.startsWith("/echo")) {
+      const param = requestPath.slice(6);
       response = `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${param.length}\r\n\r\n${param}`;
-    } else if (path.startsWith("/user-agent")) {
+    } else if (requestPath.startsWith("/user-agent")) {
       const userAgent = getUserAgent(data.toString());
       response = `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${userAgent.length}\r\n\r\n${userAgent}`;
-    } else if (path.startsWith("/files")) {
+    } else if (requestPath.startsWith("/files")) {
+      const requestMethod = getMethod(data.toString());
       const directory = process.argv[3];
-      const fileName = path.split("/")[2];
-      response = await getFileResponse(`${directory}/${fileName}`);
+      const fileName = requestPath.split("/")[2];
+      const filePath = `${directory}/${fileName}`;
+      if (requestMethod === "GET") {
+        response = await getFileResponse(filePath);
+      } else if (requestMethod === "POST") {
+        const requestBody = data.toString().split("\r\n\r\n")[1].trim();
+        await fs.mkdir(path.dirname(filePath), { recursive: true });
+        await fs.writeFile(filePath, requestBody);
+        response = "HTTP/1.1 201 Created\r\n\r\n";
+      } else {
+        response = "HTTP/1.1 405 Method Not Allowed\r\n\r\n";
+      }
     } else {
       response = "HTTP/1.1 404 Not Found\r\n\r\n";
     }
@@ -64,4 +76,8 @@ async function getFileResponse(filePath: string): Promise<string> {
     response = "HTTP/1.1 404 Not Found\r\n\r\n";
   }
   return response;
+}
+
+function getMethod(data: string) {
+  return data.split("\n")[0].split(" ")[0].trim();
 }
