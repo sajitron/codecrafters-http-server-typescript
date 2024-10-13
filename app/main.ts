@@ -16,14 +16,21 @@ const server = net.createServer((socket) => {
   socket.on("data", async (data) => {
     const requestPath = getPath(data.toString());
     let response = "";
+    const encoding = getEncoding(data.toString());
     if (requestPath === "/") {
-      response = "HTTP/1.1 200 OK\r\n\r\n";
+      response = `HTTP/1.1 200 OK${
+        encoding ? `\r\nContent-Encoding: ${encoding}` : ""
+      }\r\n\r\n`;
     } else if (requestPath.startsWith("/echo")) {
       const param = requestPath.slice(6);
-      response = `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${param.length}\r\n\r\n${param}`;
+      response = `HTTP/1.1 200 OK\r\nContent-Type: text/plain${
+        encoding ? `\r\nContent-Encoding: ${encoding}` : ""
+      }\r\nContent-Length: ${param.length}\r\n\r\n${param}`;
     } else if (requestPath.startsWith("/user-agent")) {
       const userAgent = getUserAgent(data.toString());
-      response = `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: ${userAgent.length}\r\n\r\n${userAgent}`;
+      response = `HTTP/1.1 200 OK\r\nContent-Type: text/plain${
+        encoding ? `\r\nContent-Encoding: ${encoding}` : ""
+      }\r\nContent-Length: ${userAgent.length}\r\n\r\n${userAgent}`;
     } else if (requestPath.startsWith("/files")) {
       const requestMethod = getMethod(data.toString());
       const directory = process.argv[3];
@@ -64,6 +71,21 @@ function getUserAgent(data: string) {
   }
   const [, userAgent] = userAgentData.split(":");
   return userAgent.trim();
+}
+
+function getEncoding(data: string): string | undefined {
+  const encodingData = data
+    .split("\n")
+    .find((line) => line.startsWith("Accept-Encoding"));
+  if (!encodingData) {
+    return undefined;
+  }
+  const encoding = encodingData.split(":")[1].trim();
+  const encodingSchemes = ["gzip", "deflate"];
+  if (!encodingSchemes.includes(encoding)) {
+    return undefined;
+  }
+  return encoding;
 }
 
 async function getFileResponse(filePath: string): Promise<string> {
