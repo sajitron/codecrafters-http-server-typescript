@@ -81,11 +81,20 @@ function getEncoding(data: string): string | undefined {
     return undefined;
   }
   const encoding = encodingData.split(":")[1].trim();
-  const encodingSchemes = ["gzip", "deflate"];
-  if (!encodingSchemes.includes(encoding)) {
-    return undefined;
-  }
-  return encoding;
+  const encodingSchemes = [
+    "gzip",
+    "deflate",
+    "exi",
+    "identity",
+    "pack200-gzip",
+    "br",
+    "compress",
+    "zstd",
+  ];
+  const firstFoundScheme = encoding
+    .split(",")
+    .find((scheme) => encodingSchemes.includes(scheme.trim()));
+  return firstFoundScheme;
 }
 
 async function getFileResponse(filePath: string): Promise<string> {
