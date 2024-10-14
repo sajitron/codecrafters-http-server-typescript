@@ -1,6 +1,7 @@
 import * as net from "net";
 import * as fs from "fs/promises";
 import * as path from "node:path";
+import zlib from "zlib";
 
 // You can use print statements as follows for debugging, they'll be visible when running tests.
 console.log("Logs from your program will appear here!");
@@ -16,6 +17,7 @@ const server = net.createServer((socket) => {
   socket.on("data", async (data) => {
     const requestPath = getPath(data.toString());
     let response = "";
+    let zipped = null;
     const encoding = getEncoding(data.toString());
     if (requestPath === "/") {
       response = `HTTP/1.1 200 OK${
@@ -23,9 +25,17 @@ const server = net.createServer((socket) => {
       }\r\n\r\n`;
     } else if (requestPath.startsWith("/echo")) {
       const param = requestPath.slice(6);
-      response = `HTTP/1.1 200 OK\r\nContent-Type: text/plain${
-        encoding ? `\r\nContent-Encoding: ${encoding}` : ""
-      }\r\nContent-Length: ${param.length}\r\n\r\n${param}`;
+      if (encoding && encoding === "gzip") {
+        const buffer = Buffer.from(param, "utf8");
+        zipped = zlib.gzipSync(buffer);
+        response = `HTTP/1.1 200 OK\r\nContent-Type: text/plain${
+          encoding ? `\r\nContent-Encoding: ${encoding}` : ""
+        }\r\nContent-Length: ${zipped.length}\r\n\r\n`;
+      } else {
+        response = `HTTP/1.1 200 OK\r\nContent-Type: text/plain${
+          encoding ? `\r\nContent-Encoding: ${encoding}` : ""
+        }\r\nContent-Length: ${param.length}\r\n\r\n${param}`;
+      }
     } else if (requestPath.startsWith("/user-agent")) {
       const userAgent = getUserAgent(data.toString());
       response = `HTTP/1.1 200 OK\r\nContent-Type: text/plain${
@@ -52,6 +62,10 @@ const server = net.createServer((socket) => {
     socket.write(response, () => {
       console.log("Response sent", response);
     });
+    zipped &&
+      socket.write(zipped, () => {
+        console.log("Zipped data sent", zipped);
+      });
     socket.pipe(socket);
   });
 });
